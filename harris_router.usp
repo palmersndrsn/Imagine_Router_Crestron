@@ -1,0 +1,88 @@
+/*
+Dealer Name: CoitCom
+Programmer: palmer_sanderson
+Comments: 
+*/
+  
+//COMPILER DIRECTIVES
+#symbol_name "harris_router"
+//#hint ""
+#print_to_trace
+#ENABLE_TRACE
+#default_volatile
+
+/*
+#help_begin
+  (help text)
+#help_end
+*/
+
+//INCLUDE LIBRARIES
+// #USER_SIMPLSHARP_LIBRARY "<clz name>"
+
+//IO Assignments
+string_output send_command;
+string_input from_router[256];
+analog_input source, dest;
+analog_output routed_source[128];
+digital_input poll_routes, take;
+
+
+//Variables
+
+integer p1,p2,p3,p4,p5,p6,p7;
+
+
+//Events
+
+//Poll Router
+threadsafe push poll_routes
+{
+    makeString(send_command,"READ\x0D");
+}
+
+
+//Send Router
+threadsafe push take 
+{
+    if(source = 0)
+    {
+        makeString(send_command,"XPOINT 0:X,%i,\x0d", dest);        
+    } else { 
+        makeString(send_command,"XPOINT 0:%i,%i,\x0d",source, dest);
+    }
+}
+
+//Read Router Changes
+threadsafe change from_router
+{
+    if(find("XPOINT 0:",from_router))
+        {
+            p1 = find("XPOINT 0:",from_router, 1);
+            p2 = find(":",from_router, p1) + 1;
+            p3 = find(",",from_router, p2);
+
+            p7 = find(",",from_router, p2) + 1;
+            p4 = find(",",from_router, p7) ;
+            
+            
+            print("from_router: %s",from_router);
+            print("p5 before ATOI: %s",mid(from_router, p2, p3 -p2));
+            print("p6 before ATOI: %s",mid(from_router, p7, p4 - p7));
+            if(mid(from_router, p2, p3 -p2) = "X")
+            {
+                p5 = 0;
+            } 
+            else 
+            {    
+                p5 = atoi(mid(from_router, p2, p3 -p2));
+            }
+                p6 = atoi(mid(from_router, p7, p4 -p7));
+                print("P5:%i P6: %i ",p5,p6);
+            
+            routed_source[p6] = p5;
+            
+        } else {
+            print("xpoint 0: not found");
+        }   
+}
