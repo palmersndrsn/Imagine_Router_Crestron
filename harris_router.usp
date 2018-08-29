@@ -21,8 +21,10 @@ Comments:
 // #USER_SIMPLSHARP_LIBRARY "<clz name>"
 
 //IO Assignments
+analog_input number_of_outputs;
 string_output send_command;
-string_input from_router[256];
+buffer_input from_router_buffer[800];
+string_input from_router[512];
 analog_input source, dest;
 analog_output routed_source[128];
 digital_input poll_routes, take;
@@ -32,6 +34,9 @@ digital_input poll_routes, take;
 
 integer p1,p2,p3,p4,p5,p6,p7;
 
+integer i,p10,p11,p12,p13;
+string current_out[16];
+
 
 //Events
 
@@ -39,6 +44,37 @@ integer p1,p2,p3,p4,p5,p6,p7;
 threadsafe push poll_routes
 {
     makeString(send_command,"READ\x0D");
+	delay(50);
+	if(find("01,",from_router_buffer))
+	{	
+		print("read_found loop start");
+		//print("from_router: %s",from_router_buffer);
+		for (i = 1 to number_of_outputs)
+		{
+			//PRINT("in loop %i",i);
+			makeString(current_out,"%i,",i);
+			if(find(current_out,from_router_buffer))
+			{
+				p10 = find(current_out,from_router_buffer);
+                p11 = find(",",from_router_buffer,p10)+1;
+				p12 = find(";",from_router_buffer,p11);
+				
+				//print("P13 before ATOI: %s",mid(from_router_buffer, p11, p12 -p11));
+
+				if(mid(from_router_buffer, p11, p12 -p11) = "X")
+	            {
+	                p13 = 0;
+	            } 
+	            else 
+	            {    
+	                p13 = atoi(mid(from_router_buffer, p11, p12 -p11));
+	            }
+    						
+				routed_source[i] = p13;
+			}					
+		}
+		print("loop done");	
+	}
 }
 
 
@@ -57,32 +93,32 @@ threadsafe push take
 threadsafe change from_router
 {
     if(find("XPOINT 0:",from_router))
-        {
-            p1 = find("XPOINT 0:",from_router, 1);
-            p2 = find(":",from_router, p1) + 1;
-            p3 = find(",",from_router, p2);
+    {
+	    p1 = find("XPOINT 0:",from_router, 1);
+	    p2 = find(":",from_router, p1) + 1;
+	    p3 = find(",",from_router, p2);
+	
+	    p7 = find(",",from_router, p2) + 1;
+	    p4 = find(",",from_router, p7) ;
+	    
+	    
+	    print("from_router: %s",from_router);
+	    print("p5 before ATOI: %s",mid(from_router, p2, p3 -p2));
+	    print("p6 before ATOI: %s",mid(from_router, p7, p4 - p7));
+	    if(mid(from_router, p2, p3 -p2) = "X")
+	    {
+	        p5 = 0;
+	    } 
+	    else 
+	    {    
+	        p5 = atoi(mid(from_router, p2, p3 -p2));
+	    }
+	        p6 = atoi(mid(from_router, p7, p4 -p7));
+	        print("P5:%i P6: %i ",p5,p6);
+	    
+	    routed_source[p6] = p5;
 
-            p7 = find(",",from_router, p2) + 1;
-            p4 = find(",",from_router, p7) ;
-            
-            
-            print("from_router: %s",from_router);
-            print("p5 before ATOI: %s",mid(from_router, p2, p3 -p2));
-            print("p6 before ATOI: %s",mid(from_router, p7, p4 - p7));
-            if(mid(from_router, p2, p3 -p2) = "X")
-            {
-                p5 = 0;
-            } 
-            else 
-            {    
-                p5 = atoi(mid(from_router, p2, p3 -p2));
-            }
-                p6 = atoi(mid(from_router, p7, p4 -p7));
-                print("P5:%i P6: %i ",p5,p6);
-            
-            routed_source[p6] = p5;
-            
-        } else {
-            print("xpoint 0: not found");
-        }   
+	} else {
+    	print("route: not found");
+	}   
 }
